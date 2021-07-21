@@ -24,7 +24,7 @@ Compile the firmware:
 
 ```shell
 cd midi-grid
-cargo objcopy --bin midi-grid --release -- -O binary midi-grid.bin
+cargo objcopy --release -- -O binary midi-grid.bin
 ```
 
 Then, install the bootloader on the blue pill. After connecting the

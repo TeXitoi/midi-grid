@@ -180,10 +180,11 @@ const APP: () = {
             .debouncer
             .events(c.resources.matrix.get().unwrap())
         {
-            while let Err(_) = c
+            while c
                 .resources
                 .usb_class
                 .lock(|midi| midi.send_message(midi_event(event)))
+                .is_err()
             {}
         }
     }
