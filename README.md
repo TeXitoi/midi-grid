@@ -1,4 +1,4 @@
-# Midi grid [![Build status](https://travis-ci.com/TeXitoi/midi-grid.svg?branch=master)](https://travis-ci.com/TeXitoi/midi-grid)
+# Midi grid [![Build status](https://api.travis-ci.com/TeXitoi/midi-grid.svg?branch=master)](https://travis-ci.com/TeXitoi/midi-grid)
 
 A firmware for [Keyberon grid
 60](https://github.com/TeXitoi/keyberon-grid) to make a midi
