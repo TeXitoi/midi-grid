@@ -20,6 +20,7 @@ use usb_device::prelude::*;
 use usbd_midi::data::byte::u7::U7;
 use usbd_midi::data::midi::channel::Channel;
 use usbd_midi::data::midi::message::Message;
+use usbd_midi::data::midi::notes::Note;
 use usbd_midi::data::usb::constants::USB_CLASS_NONE;
 use usbd_midi::data::usb_midi::cable_number::CableNumber;
 use usbd_midi::data::usb_midi::usb_midi_event_packet::UsbMidiEventPacket;
@@ -192,8 +193,15 @@ const APP: () = {
 
 fn midi_event(event: Event) -> UsbMidiEventPacket {
     let (y, x) = event.coord();
-    let note = 127.min(42 + x * 3 + (5 - y) * 2);
-    let note = unsafe { core::mem::transmute(note) };
+    let (channel, note) = if (y, x) == (4, 0) {
+        (Channel::Channel2, Note::C3)
+    } else if (y, x) == (0, 11) {
+        (Channel::Channel2, Note::C4)
+    } else {
+        (Channel::Channel1, unsafe {
+            core::mem::transmute(127.min(42 + x * 3 + (5 - y) * 2))
+        })
+    };
     let message = if event.is_press() {
         Message::NoteOn
     } else {
@@ -201,7 +209,7 @@ fn midi_event(event: Event) -> UsbMidiEventPacket {
     };
     UsbMidiEventPacket {
         cable_number: CableNumber::Cable0,
-        message: message(Channel::Channel1, note, U7::MAX),
+        message: message(channel, note, U7::MAX),
     }
 }
 
