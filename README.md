@@ -2,8 +2,10 @@
 
 A firmware for [Keyberon grid
 60](https://github.com/TeXitoi/keyberon-grid) to make a midi
-keyboard. The layout is about the same as a chromatic accordion system
-B.
+keyboard. The layout is an isomorphic layout similar to the
+[Striso](https://www.striso.org/), which is similar to the
+[Wicki-Hayden
+layout](https://en.wikipedia.org/wiki/Wicki%E2%80%93Hayden_note_layout).
 
 ![photo](images/midi-grid.jpg)
 

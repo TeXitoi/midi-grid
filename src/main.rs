@@ -193,13 +193,13 @@ const APP: () = {
 
 fn midi_event(event: Event) -> UsbMidiEventPacket {
     let (y, x) = event.coord();
-    let (channel, note) = if (y, x) == (4, 0) {
+    let (channel, note) = if (y, x) == (0, 0) {
         (Channel::Channel2, Note::C3)
-    } else if (y, x) == (0, 11) {
+    } else if (y, x) == (4, 11) {
         (Channel::Channel2, Note::C4)
     } else {
         (Channel::Channel1, unsafe {
-            core::mem::transmute(127.min(42 + x * 3 + (5 - y) * 2))
+            core::mem::transmute(127.min(41 + x * 2 + (4 - y) * 5))
         })
     };
     let message = if event.is_press() {
