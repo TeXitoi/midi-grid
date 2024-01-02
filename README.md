@@ -42,5 +42,5 @@ computer. It should now be in DFU mode. Now, flash the firmware:
 
 ```shell
 cd midi-grid
-sudo dfu-util -d 1eaf:0003 -a 2 -D midi-grid.bin
+sudo dfu-util -w -d 1eaf:0003 -a 2 -D midi-grid.bin
 ```

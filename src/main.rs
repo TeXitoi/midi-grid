@@ -1,16 +1,13 @@
 #![no_main]
 #![no_std]
 
-use core::convert::Infallible;
-use embedded_hal::digital::v2::{InputPin, OutputPin};
-use generic_array::typenum::{U12, U5};
+use embedded_hal::digital::v2::OutputPin;
 use keyberon::debounce::Debouncer;
-use keyberon::impl_heterogenous_array;
 use keyberon::layout::Event;
-use keyberon::matrix::{Matrix, PressedKeys};
+use keyberon::matrix::Matrix;
 use panic_halt as _;
 use rtic::app;
-use stm32f1xx_hal::gpio::{gpioa::*, gpiob::*, Input, Output, PullUp, PushPull};
+use stm32f1xx_hal::gpio::{Input, Output, PullUp, PushPull, Pxx};
 use stm32f1xx_hal::prelude::*;
 use stm32f1xx_hal::usb::{Peripheral, UsbBus, UsbBusType};
 use stm32f1xx_hal::{pac, timer};
@@ -29,48 +26,13 @@ use usbd_midi::midi_device::MidiClass;
 type UsbClass = MidiClass<'static, UsbBusType>;
 type UsbDevice = usb_device::device::UsbDevice<'static, UsbBusType>;
 
-pub struct Cols(
-    pub PB12<Input<PullUp>>,
-    pub PB13<Input<PullUp>>,
-    pub PB14<Input<PullUp>>,
-    pub PB15<Input<PullUp>>,
-    pub PA8<Input<PullUp>>,
-    pub PA9<Input<PullUp>>,
-    pub PA10<Input<PullUp>>,
-    pub PB5<Input<PullUp>>,
-    pub PB6<Input<PullUp>>,
-    pub PB7<Input<PullUp>>,
-    pub PB8<Input<PullUp>>,
-    pub PB9<Input<PullUp>>,
-);
-impl_heterogenous_array! {
-    Cols,
-    dyn InputPin<Error = Infallible>,
-    U12,
-    [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
-}
-
-pub struct Rows(
-    pub PB11<Output<PushPull>>,
-    pub PB10<Output<PushPull>>,
-    pub PB1<Output<PushPull>>,
-    pub PB0<Output<PushPull>>,
-    pub PA7<Output<PushPull>>,
-);
-impl_heterogenous_array! {
-    Rows,
-    dyn OutputPin<Error = Infallible>,
-    U5,
-    [0, 1, 2, 3, 4]
-}
-
 #[app(device = stm32f1xx_hal::pac, peripherals = true)]
 const APP: () = {
     struct Resources {
         usb_dev: UsbDevice,
         usb_class: UsbClass,
-        matrix: Matrix<Cols, Rows>,
-        debouncer: Debouncer<PressedKeys<U5, U12>>,
+        matrix: Matrix<Pxx<Input<PullUp>>, Pxx<Output<PushPull>>, 12, 5>,
+        debouncer: Debouncer<[[bool; 12]; 5]>,
         timer: timer::CountDownTimer<pac::TIM3>,
     }
 
@@ -130,34 +92,34 @@ const APP: () = {
         timer.listen(timer::Event::Update);
 
         let matrix = Matrix::new(
-            Cols(
-                gpiob.pb12.into_pull_up_input(&mut gpiob.crh),
-                gpiob.pb13.into_pull_up_input(&mut gpiob.crh),
-                gpiob.pb14.into_pull_up_input(&mut gpiob.crh),
-                gpiob.pb15.into_pull_up_input(&mut gpiob.crh),
-                gpioa.pa8.into_pull_up_input(&mut gpioa.crh),
-                gpioa.pa9.into_pull_up_input(&mut gpioa.crh),
-                gpioa.pa10.into_pull_up_input(&mut gpioa.crh),
-                gpiob.pb5.into_pull_up_input(&mut gpiob.crl),
-                gpiob.pb6.into_pull_up_input(&mut gpiob.crl),
-                gpiob.pb7.into_pull_up_input(&mut gpiob.crl),
-                gpiob.pb8.into_pull_up_input(&mut gpiob.crh),
-                gpiob.pb9.into_pull_up_input(&mut gpiob.crh),
-            ),
-            Rows(
-                gpiob.pb11.into_push_pull_output(&mut gpiob.crh),
-                gpiob.pb10.into_push_pull_output(&mut gpiob.crh),
-                gpiob.pb1.into_push_pull_output(&mut gpiob.crl),
-                gpiob.pb0.into_push_pull_output(&mut gpiob.crl),
-                gpioa.pa7.into_push_pull_output(&mut gpioa.crl),
-            ),
+            [
+                gpiob.pb12.into_pull_up_input(&mut gpiob.crh).downgrade(),
+                gpiob.pb13.into_pull_up_input(&mut gpiob.crh).downgrade(),
+                gpiob.pb14.into_pull_up_input(&mut gpiob.crh).downgrade(),
+                gpiob.pb15.into_pull_up_input(&mut gpiob.crh).downgrade(),
+                gpioa.pa8.into_pull_up_input(&mut gpioa.crh).downgrade(),
+                gpioa.pa9.into_pull_up_input(&mut gpioa.crh).downgrade(),
+                gpioa.pa10.into_pull_up_input(&mut gpioa.crh).downgrade(),
+                gpiob.pb5.into_pull_up_input(&mut gpiob.crl).downgrade(),
+                gpiob.pb6.into_pull_up_input(&mut gpiob.crl).downgrade(),
+                gpiob.pb7.into_pull_up_input(&mut gpiob.crl).downgrade(),
+                gpiob.pb8.into_pull_up_input(&mut gpiob.crh).downgrade(),
+                gpiob.pb9.into_pull_up_input(&mut gpiob.crh).downgrade(),
+            ],
+            [
+                gpiob.pb11.into_push_pull_output(&mut gpiob.crh).downgrade(),
+                gpiob.pb10.into_push_pull_output(&mut gpiob.crh).downgrade(),
+                gpiob.pb1.into_push_pull_output(&mut gpiob.crl).downgrade(),
+                gpiob.pb0.into_push_pull_output(&mut gpiob.crl).downgrade(),
+                gpioa.pa7.into_push_pull_output(&mut gpioa.crl).downgrade(),
+            ],
         );
 
         init::LateResources {
             usb_dev,
             usb_class,
             timer,
-            debouncer: Debouncer::new(PressedKeys::default(), PressedKeys::default(), 5),
+            debouncer: Debouncer::new([[false; 12]; 5], [[false; 12]; 5], 5),
             matrix: matrix.unwrap(),
         }
     }
