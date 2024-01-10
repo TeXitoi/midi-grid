@@ -143,34 +143,64 @@ mod app {
     fn tick(mut c: tick::Context) {
         c.local.timer.clear_interrupt(timer::Event::Update);
 
+        let state = *c.local.debouncer.get();
         for event in c.local.debouncer.events(c.local.matrix.get().unwrap()) {
+            let Some(midi_event) = midi_event(event, &state) else {
+                continue;
+            };
             while c
                 .shared
                 .usb_class
-                .lock(|midi| midi.send_message(midi_event(event)))
+                .lock(|midi| midi.send_message(clone_midi_event(&midi_event)))
                 .is_err()
             {}
         }
     }
 }
 
-fn midi_event(event: Event) -> UsbMidiEventPacket {
-    let (y, x) = event.coord();
-    let (channel, note) = if (y, x) == (4, 11) {
+fn clone_midi_event(e: &UsbMidiEventPacket) -> UsbMidiEventPacket {
+    let mut res = core::mem::MaybeUninit::<UsbMidiEventPacket>::uninit();
+    unsafe {
+        core::ptr::copy_nonoverlapping(e, res.as_mut_ptr(), 1);
+        res.assume_init()
+    }
+}
+
+fn midi_event(event: Event, state: &[[bool; 12]; 5]) -> Option<UsbMidiEventPacket> {
+    let coord = event.coord();
+    let midi @ (channel, note) = midi_from_coord(coord);
+    let message = if event.is_press() {
+        Message::NoteOn
+    } else {
+        if state
+            .iter()
+            .enumerate()
+            .flat_map(|(y, xs)| {
+                xs.iter()
+                    .enumerate()
+                    .filter_map(move |(x, b)| b.then_some((y as u8, x as u8)))
+            })
+            .filter(|c| c != &coord)
+            .map(midi_from_coord)
+            .any(|m| m == midi)
+        {
+            return None;
+        }
+        Message::NoteOff
+    };
+    Some(UsbMidiEventPacket {
+        cable_number: CableNumber::Cable0,
+        message: message(channel, note, U7::MAX),
+    })
+}
+
+fn midi_from_coord((y, x): (u8, u8)) -> (Channel, Note) {
+    if (y, x) == (4, 11) {
         (Channel::Channel2, Note::C4)
     } else {
         (Channel::Channel1, unsafe {
             core::mem::transmute(127.min(41 + x * 2 + (4 - y) * 5))
         })
-    };
-    let message = if event.is_press() {
-        Message::NoteOn
-    } else {
-        Message::NoteOff
-    };
-    UsbMidiEventPacket {
-        cable_number: CableNumber::Cable0,
-        message: message(channel, note, U7::MAX),
     }
 }
 
