@@ -156,9 +156,7 @@ mod app {
 
 fn midi_event(event: Event) -> UsbMidiEventPacket {
     let (y, x) = event.coord();
-    let (channel, note) = if (y, x) == (0, 0) {
-        (Channel::Channel2, Note::C3)
-    } else if (y, x) == (4, 11) {
+    let (channel, note) = if (y, x) == (4, 11) {
         (Channel::Channel2, Note::C4)
     } else {
         (Channel::Channel1, unsafe {
