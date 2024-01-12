@@ -143,8 +143,8 @@ mod app {
     fn tick(mut c: tick::Context) {
         c.local.timer.clear_interrupt(timer::Event::Update);
 
-        let state = *c.local.debouncer.get();
-        for event in c.local.debouncer.events(c.local.matrix.get().unwrap()) {
+        let state = c.local.matrix.get().unwrap();
+        for event in c.local.debouncer.events(state) {
             let Some(midi_event) = midi_event(event, &state) else {
                 continue;
             };
@@ -167,8 +167,7 @@ fn clone_midi_event(e: &UsbMidiEventPacket) -> UsbMidiEventPacket {
 }
 
 fn midi_event(event: Event, state: &[[bool; 12]; 5]) -> Option<UsbMidiEventPacket> {
-    let coord = event.coord();
-    let midi @ (channel, note) = midi_from_coord(coord);
+    let midi @ (channel, note) = midi_from_coord(event.coord());
     let message = if event.is_press() {
         Message::NoteOn
     } else {
@@ -180,7 +179,6 @@ fn midi_event(event: Event, state: &[[bool; 12]; 5]) -> Option<UsbMidiEventPacke
                     .enumerate()
                     .filter_map(move |(x, b)| b.then_some((y as u8, x as u8)))
             })
-            .filter(|c| c != &coord)
             .map(midi_from_coord)
             .any(|m| m == midi)
         {
